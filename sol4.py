@@ -31,8 +31,11 @@ def harris_corner_detector(im):
     IxIy = sol4_utils.blur_spatial(Ix * Iy, 3)
     k = 0.04
     R = -k * np.square(IxIx + IyIy)
-
-    pass
+    corners = non_maximum_suppression(R)
+    y, x = np.nonzero(corners)
+    x = np.expand_dims(x, axis=1)
+    y = np.expand_dims(y, axis=1)
+    return np.concatenate((x,y),  axis=1)
 
 
 def sample_descriptor(im, pos, desc_rad):
