@@ -52,7 +52,9 @@ def sample_descriptor(im, pos, desc_rad):
     for i in range(N):
         x,y = pos[i,:]
         # create descriptor vector desc
-        descriptor_array[i, :, :] = map_coordinates(im, desc, order=1, prefilter=False)
+        descriptor_array_slice = map_coordinates(im, desc, order=1, prefilter=False)
+        mu = np.mean(descriptor_array_slice)
+        descriptor_array[i, :, :] = (descriptor_array_slice-mu)/np.linalg.norm(descriptor_array_slice-mu)
     return descriptor_array
 
 
