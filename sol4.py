@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 from scipy.ndimage.morphology import generate_binary_structure
 from scipy.ndimage.filters import maximum_filter
-from scipy.ndimage import label, center_of_mass
+from scipy.ndimage import label, center_of_mass, map_coordinates
 from scipy import signal
 import shutil
 from imageio import imwrite
@@ -30,7 +30,7 @@ def harris_corner_detector(im):
     IyIy = sol4_utils.blur_spatial(Iy * Iy, 3)
     IxIy = sol4_utils.blur_spatial(Ix * Iy, 3)
     k = 0.04
-    R = -k * np.square(IxIx + IyIy)
+    R = (IxIx*IyIy-np.square(IxIy))-k * np.square(IxIx + IyIy)
     corners = non_maximum_suppression(R)
     y, x = np.nonzero(corners)
     x = np.expand_dims(x, axis=1)
@@ -46,7 +46,16 @@ def sample_descriptor(im, pos, desc_rad):
     :param desc_rad: "Radius" of descriptors to compute.
     :return: A 3D array with shape (N,K,K) containing the ith descriptor at desc[i,:,:].
     """
-    pass
+    K = 1+2*desc_rad
+    N = pos.shape[0]
+    descriptor_array = np.zeros((N,K,K))
+    for i in range(N):
+        x,y = pos[i,:]
+        # create descriptor vector desc
+        descriptor_array[i, :, :] = map_coordinates(im, desc, order=1, prefilter=False)
+    return descriptor_array
+
+
 
 
 def find_features(pyr):
@@ -58,8 +67,9 @@ def find_features(pyr):
                    These coordinates are provided at the pyramid level pyr[0].
                 2) A feature descriptor array with shape (N,K,K)
     """
-    pass
-
+    corners = (1/4)*spread_out_corners(pyr[0], 7, 7, 16)
+    descriptor_array = sample_descriptor(pyr[2], corners, 3)
+    return descriptor_array
 
 def match_features(desc1, desc2, min_score):
     """
