@@ -55,7 +55,7 @@ def sample_descriptor(im, pos, desc_rad):
         coords = np.stack((xv,yv), axis=0)
         descriptor_array_slice = map_coordinates(im, coords, order=1, prefilter=False)
         mu = np.mean(descriptor_array_slice)
-        descriptor_array[i, :, :] = (descriptor_array_slice-mu)/np.std(descriptor_array_slice-mu)
+        descriptor_array[i, :, :] = (descriptor_array_slice-mu)/np.std(descriptor_array_slice)
     return descriptor_array
 
 
