@@ -51,10 +51,11 @@ def sample_descriptor(im, pos, desc_rad):
     descriptor_array = np.zeros((N,K,K))
     for i in range(N):
         x,y = pos[i,:]
-        # create descriptor vector desc
-        descriptor_array_slice = map_coordinates(im, desc, order=1, prefilter=False)
+        xv, yv = np.meshgrid(np.arange(x-desc_rad,x+desc_rad+1),np.arange(y-desc_rad,y+desc_rad+1))
+        coords = np.stack((xv,yv), axis=0)
+        descriptor_array_slice = map_coordinates(im, coords, order=1, prefilter=False)
         mu = np.mean(descriptor_array_slice)
-        descriptor_array[i, :, :] = (descriptor_array_slice-mu)/np.linalg.norm(descriptor_array_slice-mu)
+        descriptor_array[i, :, :] = (descriptor_array_slice-mu)/np.std(descriptor_array_slice-mu)
     return descriptor_array
 
 
@@ -70,8 +71,8 @@ def find_features(pyr):
                 2) A feature descriptor array with shape (N,K,K)
     """
     corners = (1/4)*spread_out_corners(pyr[0], 7, 7, 16)
-    descriptor_array = sample_descriptor(pyr[2], corners, 3)
-    return descriptor_array
+    descriptor_array = sample_descriptor(pyr[2], corners, desc_rad=3)
+    return [corners, descriptor_array]
 
 def match_features(desc1, desc2, min_score):
     """
