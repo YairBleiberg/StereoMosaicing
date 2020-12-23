@@ -88,8 +88,10 @@ def match_features(desc1, desc2, min_score):
                 1) An array with shape (M,) and dtype int of matching indices in desc1.
                 2) An array with shape (M,) and dtype int of matching indices in desc2.
     """
-    pass
-
+    # Mij is the dot product between desc1[i,:,:] and desc2[j,:,:]
+    M = np.einsum('imn,jmn', desc1, desc2)
+    two_best_for_desc1 = np.argpartition(M, kth=-2, axis=1)[-2:]
+    two_best_for_desc2 = np.argpartition(M, kth=-2, axis=0)[-2:]
 
 def apply_homography(pos1, H12):
     """
