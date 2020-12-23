@@ -92,8 +92,8 @@ def match_features(desc1, desc2, min_score):
     desc2_matches = np.array([])
     # Mij is the dot product between desc1[i,:,:] and desc2[j,:,:]
     M = np.einsum('imn,jmn', desc1, desc2)
-    two_best_for_desc1 = np.argpartition(M, kth=-2, axis=1)[-2:]
-    two_best_for_desc2 = np.argpartition(M, kth=-2, axis=0)[-2:]
+    two_best_for_desc1 = np.argpartition(M, kth=-2, axis=1)[:, -2:]
+    two_best_for_desc2 = np.argpartition(M, kth=-2, axis=0)[-2:, :]
     N1 = M.shape[0]
     N2 = M.shape[1]
     for i in range(N1):
