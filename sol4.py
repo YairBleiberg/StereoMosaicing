@@ -117,8 +117,10 @@ def apply_homography(pos1, H12):
     :param H12: A 3x3 homography matrix.
     :return: An array with the same shape as pos1 with [x,y] point coordinates obtained from transforming pos1 using H12.
     """
-    pass
-
+    hom_coords = np.transpose(np.pad(pos1, ((0,0), (0,1)), mode='constant', constant_values=1))
+    after_transform = np.matmul(H12, hom_coords)
+    a = after_transform[2,:]
+    return np.transpose(after_transform[:2, :]/after_transform[2, :])
 
 def ransac_homography(points1, points2, num_iter, inlier_tol, translation_only=False):
     """
