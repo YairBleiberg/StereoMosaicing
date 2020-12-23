@@ -50,16 +50,16 @@ def sample_descriptor(im, pos, desc_rad):
     N = pos.shape[0]
     descriptor_array = np.zeros((N,K,K))
     for i in range(N):
-        x,y = pos[i,:]
-        xv, yv = np.meshgrid(np.arange(x-desc_rad,x+desc_rad+1),np.arange(y-desc_rad,y+desc_rad+1))
-        coords = np.stack((xv,yv), axis=0)
+        x, y = pos[i, :]
+        xv, yv = np.meshgrid(np.arange(x - desc_rad, x + desc_rad + 1), np.arange(y - desc_rad, y + desc_rad + 1))
+        coords = np.stack((yv, xv), axis=0)
         descriptor_array_slice = map_coordinates(im, coords, order=1, prefilter=False)
         mu = np.mean(descriptor_array_slice)
-        s = np.std(descriptor_array_slice)
+        s = np.linalg.norm(descriptor_array_slice-mu)
         if s == 0:
             descriptor_array[i, :, :] = 0
         else:
-            descriptor_array[i, :, :] = (descriptor_array_slice-mu)/np.std(descriptor_array_slice)
+            descriptor_array[i, :, :] = (descriptor_array_slice-mu)/s
     return descriptor_array
 
 
