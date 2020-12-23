@@ -88,10 +88,27 @@ def match_features(desc1, desc2, min_score):
                 1) An array with shape (M,) and dtype int of matching indices in desc1.
                 2) An array with shape (M,) and dtype int of matching indices in desc2.
     """
+    desc1_matches = np.array([])
+    desc2_matches = np.array([])
     # Mij is the dot product between desc1[i,:,:] and desc2[j,:,:]
     M = np.einsum('imn,jmn', desc1, desc2)
     two_best_for_desc1 = np.argpartition(M, kth=-2, axis=1)[-2:]
     two_best_for_desc2 = np.argpartition(M, kth=-2, axis=0)[-2:]
+    N1 = M.shape[0]
+    N2 = M.shape[1]
+    for i in range(N1):
+        # first check if one of the best 2 matches is mutual
+        if i in two_best_for_desc2[:, two_best_for_desc1[i, 0]]:
+            if M[i,two_best_for_desc1[i, 0]] > min_score:
+                desc1_matches = np.append(desc1_matches, i)
+                desc2_matches = np.append(desc2_matches, two_best_for_desc1[i, 0])
+        # now check the other
+        if i in two_best_for_desc2[:, two_best_for_desc1[i, 1]]:
+            if M[i,two_best_for_desc1[i, 0]] > min_score:
+                desc1_matches = np.append(desc1_matches, i)
+                desc2_matches = np.append(desc2_matches, two_best_for_desc1[i, 1])
+
+    return [desc1_matches, desc2_matches]
 
 def apply_homography(pos1, H12):
     """
