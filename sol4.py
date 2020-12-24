@@ -167,7 +167,20 @@ def display_matches(im1, im2, points1, points2, inliers):
     :param pos2: An aray shape (N,2), containing N rows of [x,y] coordinates of matched points in im2.
     :param inliers: An array with shape (S,) of inlier matches.
     """
-    pass
+    im = np.hstack((im1,im2))
+    N = points1.shape[0]
+    R,C = im1.shape
+    inliers_x = np.hstack((points1[inliers,0],points2[inliers,0]+C))
+    inliers_y = np.hstack((points1[inliers,1],points2[inliers,1]))
+
+    outliers_x = np.hstack((points1[np.delete(np.arange(N),inliers),0],points2[np.delete(np.arange(N), inliers),0]+C))
+    outliers_y = np.hstack((points1[np.delete(np.arange(N), inliers), 1], points2[np.delete(np.arange(N), inliers), 1]))
+
+    plt.figure()
+    plt.imshow(im, cmap='gray')
+    plt.plot(outliers_x, outliers_y, mfc='r', c ='b', lw = .4, ms = 10, marker ='o')
+    plt.plot(inliers_x, inliers_y, mfc='r', c ='y', lw = .4, ms = 10, marker ='o')
+    plt.show()
 
 
 def accumulate_homographies(H_succesive, m):
