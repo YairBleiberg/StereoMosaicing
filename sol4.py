@@ -72,7 +72,7 @@ def find_features(pyr):
                    These coordinates are provided at the pyramid level pyr[0].
                 2) A feature descriptor array with shape (N,K,K)
     """
-    corners = spread_out_corners(pyr[0], 7, 7, 5)
+    corners = spread_out_corners(pyr[0], 7, 7, 16)
     descriptor_array = sample_descriptor(pyr[2], (1/4)*corners, desc_rad=3)
     return [corners, descriptor_array]
 
@@ -171,11 +171,11 @@ def display_matches(im1, im2, points1, points2, inliers):
     im = np.hstack((im1,im2))
     N = points1.shape[0]
     R,C = im1.shape
-    inliers_x = np.hstack((np.expand_dims(points1[inliers,0],axis=1),np.expand_dims(points2[inliers,0]+C,axis=1)))
-    inliers_y = np.hstack((np.expand_dims(points1[inliers,1],axis=1),np.expand_dims(points2[inliers,1],axis=1)))
+    inliers_x = np.vstack((np.expand_dims(points1[inliers,0],axis=0),np.expand_dims(points2[inliers,0]+C,axis=0)))
+    inliers_y = np.vstack((np.expand_dims(points1[inliers,1],axis=0),np.expand_dims(points2[inliers,1],axis=0)))
 
-    outliers_x = np.hstack((np.expand_dims(points1[np.delete(np.arange(N),inliers),0],axis=1),np.expand_dims(points2[np.delete(np.arange(N), inliers),0]+C,axis=1)))
-    outliers_y = np.hstack((np.expand_dims(points1[np.delete(np.arange(N), inliers), 1],axis=1), np.expand_dims(points2[np.delete(np.arange(N), inliers), 1],axis=1)))
+    outliers_x = np.vstack((np.expand_dims(points1[np.delete(np.arange(N),inliers),0],axis=0),np.expand_dims(points2[np.delete(np.arange(N), inliers),0]+C,axis=0)))
+    outliers_y = np.vstack((np.expand_dims(points1[np.delete(np.arange(N), inliers), 1],axis=0), np.expand_dims(points2[np.delete(np.arange(N), inliers), 1],axis=0)))
 
     plt.figure()
     plt.imshow(im, cmap='gray')
