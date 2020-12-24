@@ -23,7 +23,7 @@ def harris_corner_detector(im):
     :return: An array with shape (N,2), where ret[i,:] are the [x,y] coordinates of the ith corner points.
     """
 
-    kernel = np.expand_dims(np.array([0.5, 0, -0.5]), axis=0)
+    kernel = np.expand_dims(np.array([1, 0, -1]), axis=0)
     Ix = signal.convolve2d(im, kernel, mode='same', boundary='symm')
     Iy = signal.convolve2d(im, np.transpose(kernel), mode='same', boundary='symm')
     IxIx = sol4_utils.blur_spatial(Ix * Ix, 3)
