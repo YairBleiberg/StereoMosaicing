@@ -63,8 +63,6 @@ def sample_descriptor(im, pos, desc_rad):
     return descriptor_array
 
 
-
-
 def find_features(pyr):
     """
     Detects and extracts feature points from a pyramid.
@@ -146,9 +144,19 @@ def ransac_homography(points1, points2, num_iter, inlier_tol, translation_only=F
             num_of_inliers = np.count_nonzero(E<inlier_tol)
             if len(J_in) < num_of_inliers:
                 J_in = np.nonzero(E<inlier_tol)
-
-
-
+        H12 = estimate_rigid_transform(points1[J_in,:],points2[J_in,:],translation_only=False)
+        return [H12, J_in]
+    else:
+        for i in range(num_iter):
+            match_numbers = np.random.choice(N, (1), replace=False)
+            H12 = estimate_rigid_transform(points1[match_numbers,:], points2[match_numbers,:], translation_only=True)
+            P2_prime = apply_homography(points1, H12)
+            E = np.sum(np.square(P2_prime-points2), axis=1)
+            num_of_inliers = np.count_nonzero(E<inlier_tol)
+            if len(J_in) < num_of_inliers:
+                J_in = np.nonzero(E<inlier_tol)
+        H12 = estimate_rigid_transform(points1[J_in,:],points2[J_in,:],translation_only=True)
+        return [H12, J_in]
 
 def display_matches(im1, im2, points1, points2, inliers):
     """
