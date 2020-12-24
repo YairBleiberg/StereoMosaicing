@@ -135,7 +135,19 @@ def ransac_homography(points1, points2, num_iter, inlier_tol, translation_only=F
                 2) An Array with shape (S,) where S is the number of inliers,
                     containing the indices in pos1/pos2 of the maximal set of inlier matches found.
     """
-    pass
+    N = points1.shape[0]
+    J_in = np.array([])
+    if translation_only == False:
+        for i in range(num_iter):
+            match_numbers = np.random.choice(N, (2), replace=False)
+            H12 = estimate_rigid_transform(points1[match_numbers,:], points2[match_numbers,:], translation_only=False)
+            P2_prime = apply_homography(points1, H12)
+            E = np.sum(np.square(P2_prime-points2), axis=1)
+            num_of_inliers = np.count_nonzero(E<inlier_tol)
+            if len(J_in) < num_of_inliers:
+                J_in = np.nonzero(E<inlier_tol)
+
+
 
 
 def display_matches(im1, im2, points1, points2, inliers):
