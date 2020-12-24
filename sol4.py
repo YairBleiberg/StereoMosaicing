@@ -72,8 +72,8 @@ def find_features(pyr):
                    These coordinates are provided at the pyramid level pyr[0].
                 2) A feature descriptor array with shape (N,K,K)
     """
-    corners = (1/4)*spread_out_corners(pyr[0], 7, 7, 16)
-    descriptor_array = sample_descriptor(pyr[2], corners, desc_rad=3)
+    corners = spread_out_corners(pyr[0], 7, 7, 5)
+    descriptor_array = sample_descriptor(pyr[2], (1/4)*corners, desc_rad=3)
     return [corners, descriptor_array]
 
 def match_features(desc1, desc2, min_score):
@@ -143,7 +143,7 @@ def ransac_homography(points1, points2, num_iter, inlier_tol, translation_only=F
             E = np.sum(np.square(P2_prime-points2), axis=1)
             num_of_inliers = np.count_nonzero(E<inlier_tol)
             if len(J_in) < num_of_inliers:
-                J_in = np.nonzero(E<inlier_tol)
+                J_in = np.nonzero(E<inlier_tol)[0]
         H12 = estimate_rigid_transform(points1[J_in,:],points2[J_in,:],translation_only=False)
         return [H12, J_in]
     else:
@@ -154,7 +154,8 @@ def ransac_homography(points1, points2, num_iter, inlier_tol, translation_only=F
             E = np.sum(np.square(P2_prime-points2), axis=1)
             num_of_inliers = np.count_nonzero(E<inlier_tol)
             if len(J_in) < num_of_inliers:
-                J_in = np.nonzero(E<inlier_tol)
+                J_in = np.nonzero(E<inlier_tol)[0]
+
         H12 = estimate_rigid_transform(points1[J_in,:],points2[J_in,:],translation_only=True)
         return [H12, J_in]
 
@@ -170,16 +171,16 @@ def display_matches(im1, im2, points1, points2, inliers):
     im = np.hstack((im1,im2))
     N = points1.shape[0]
     R,C = im1.shape
-    inliers_x = np.hstack((points1[inliers,0],points2[inliers,0]+C))
-    inliers_y = np.hstack((points1[inliers,1],points2[inliers,1]))
+    inliers_x = np.hstack((np.expand_dims(points1[inliers,0],axis=1),np.expand_dims(points2[inliers,0]+C,axis=1)))
+    inliers_y = np.hstack((np.expand_dims(points1[inliers,1],axis=1),np.expand_dims(points2[inliers,1],axis=1)))
 
-    outliers_x = np.hstack((points1[np.delete(np.arange(N),inliers),0],points2[np.delete(np.arange(N), inliers),0]+C))
-    outliers_y = np.hstack((points1[np.delete(np.arange(N), inliers), 1], points2[np.delete(np.arange(N), inliers), 1]))
+    outliers_x = np.hstack((np.expand_dims(points1[np.delete(np.arange(N),inliers),0],axis=1),np.expand_dims(points2[np.delete(np.arange(N), inliers),0]+C,axis=1)))
+    outliers_y = np.hstack((np.expand_dims(points1[np.delete(np.arange(N), inliers), 1],axis=1), np.expand_dims(points2[np.delete(np.arange(N), inliers), 1],axis=1)))
 
     plt.figure()
     plt.imshow(im, cmap='gray')
-    plt.plot(outliers_x, outliers_y, mfc='r', c ='b', lw = .4, ms = 10, marker ='o')
-    plt.plot(inliers_x, inliers_y, mfc='r', c ='y', lw = .4, ms = 10, marker ='o')
+    plt.plot(outliers_x, outliers_y, mfc='r', c ='b', lw = .4, ms = 2, marker ='o')
+    plt.plot(inliers_x, inliers_y, mfc='r', c ='y', lw = .4, ms = 2, marker ='o')
     plt.show()
 
 
