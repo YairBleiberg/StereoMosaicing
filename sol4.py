@@ -196,9 +196,15 @@ def accumulate_homographies(H_succesive, m):
     :return: A list of M 3x3 homography matrices,
       where H2m[i] transforms points from coordinate system i to coordinate system m
     """
-    pass
-
-
+    M = len(H_succesive)+1
+    H2m = [np.eye(3)]
+    for i in np.arange(m-1, -1, -1):
+        H = np.matmul(H2m[0], H_succesive[i])
+        H2m.insert(0, H/H[2,2])
+    for i in np.arange(m+1,M,1):
+        H = np.matmul(H2m[-1],np.linalg.inv(H_succesive[i-1]))
+        H2m.append(H/H[2,2])
+    return H2m
 def compute_bounding_box(homography, w, h):
     """
     computes bounding box of warped image under homography, without actually warping the image
