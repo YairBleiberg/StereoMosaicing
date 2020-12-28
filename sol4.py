@@ -106,7 +106,7 @@ def match_features(desc1, desc2, min_score):
                 desc1_matches = np.append(desc1_matches, i)
                 desc2_matches = np.append(desc2_matches, two_best_for_desc1[i, 1])
 
-    return [desc1_matches, desc2_matches]
+    return np.int32([desc1_matches, desc2_matches])
 
 def apply_homography(pos1, H12):
     """
@@ -238,7 +238,9 @@ def warp_channel(image, homography):
     coords = np.stack((xv, yv, ones_vector))
     inverse_coords = np.einsum('ij,jkl',np.linalg.inv(homography), coords)
     inverse_coords = inverse_coords[0:2,:,:]/inverse_coords[2,:,:]
-    return map_coordinates(image, inverse_coords, order=1, prefilter=False)
+
+    a = map_coordinates(image, inverse_coords, order=1, prefilter=False)
+    return map_coordinates(image, np.flip(inverse_coords, axis=0), order=1, prefilter=False)
 
 def warp_image(image, homography):
     """
