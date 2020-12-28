@@ -205,6 +205,8 @@ def accumulate_homographies(H_succesive, m):
         H = np.matmul(H2m[-1],np.linalg.inv(H_succesive[i-1]))
         H2m.append(H/H[2,2])
     return H2m
+
+
 def compute_bounding_box(homography, w, h):
     """
     computes bounding box of warped image under homography, without actually warping the image
@@ -214,8 +216,11 @@ def compute_bounding_box(homography, w, h):
     :return: 2x2 array, where the first row is [x,y] of the top left corner,
      and the second row is the [x,y] of the bottom right corner
     """
-    pass
-
+    all_corners = np.array([[0,0],[w-1,0],[0,h-1],[w-1,h-1]])
+    warped_corners = apply_homography(all_corners,homography)
+    xmin,ymin = np.int32(np.floor(np.amin(warped_corners, axis=0)))
+    xmax, ymax = np.int32(np.ceil(np.amax(warped_corners, axis=0)))
+    return np.array([[xmin,ymin],[xmax,ymax]])
 
 def warp_channel(image, homography):
     """
@@ -224,8 +229,16 @@ def warp_channel(image, homography):
     :param homography: homograhpy.
     :return: A 2d warped image.
     """
-    pass
-
+    box = compute_bounding_box(homography, image.shape[1], image.shape[0])
+    x = np.arange(box[0,0],box[1,0]+1)
+    y = np.arange(box[0,1],box[1,1]+1)
+    # check type of indexing!
+    xv, yv = np.meshgrid(x,y)
+    ones_vector = np.ones(xv.shape)
+    coords = np.stack((xv, yv, ones_vector))
+    inverse_coords = np.einsum('ij,jkl',np.linalg.inv(homography), coords)
+    inverse_coords = inverse_coords[0:2,:,:]/inverse_coords[2,:,:]
+    return map_coordinates(image, inverse_coords, order=1, prefilter=False)
 
 def warp_image(image, homography):
     """
