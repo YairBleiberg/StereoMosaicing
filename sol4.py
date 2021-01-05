@@ -238,8 +238,6 @@ def warp_channel(image, homography):
     coords = np.stack((xv, yv, ones_vector))
     inverse_coords = np.einsum('ij,jkl',np.linalg.inv(homography), coords)
     inverse_coords = inverse_coords[0:2,:,:]/inverse_coords[2,:,:]
-
-    a = map_coordinates(image, inverse_coords, order=1, prefilter=False)
     return map_coordinates(image, np.flip(inverse_coords, axis=0), order=1, prefilter=False)
 
 def warp_image(image, homography):
