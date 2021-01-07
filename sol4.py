@@ -143,7 +143,7 @@ def ransac_homography(points1, points2, num_iter, inlier_tol, translation_only=F
             E = np.sum(np.square(P2_prime-points2), axis=1)
             num_of_inliers = np.count_nonzero(E<inlier_tol)
             if len(J_in) < num_of_inliers:
-                J_in = np.nonzero(E<inlier_tol)[0]
+                J_in = np.int32(np.nonzero(E<inlier_tol)[0])
         H12 = estimate_rigid_transform(points1[J_in,:],points2[J_in,:],translation_only=False)
         return [H12, J_in]
     else:
