@@ -82,3 +82,44 @@ def build_gaussian_pyramid(im, max_levels, filter_size):
         im = blur_and_reduce(im, filter_size)
         pyr.append(im)
     return [pyr, build_filter(filter_size)]
+
+
+def build_laplacian_pyramid(im, max_levels, filter_size):
+    pyr, filter_vec = build_gaussian_pyramid(im, max_levels, filter_size)
+    for i in range(len(pyr)-1):
+        pyr[i] = pyr[i] - expand(pyr[i+1], filter_size)
+    return [pyr, filter_vec]
+
+
+def laplacian_to_image(lpyr, filter_vec, coeff):
+    # we reverse the pyramid to start the sum from the bottom
+    lpyr.reverse()
+    coeff.reverse()
+    img = coeff[0]*lpyr[0]
+    for i in np.arange(1, len(lpyr)):
+        img = expand(img, filter_vec.size) + coeff[i]*lpyr[i]
+    return img
+
+
+def render_pyramid(pyr, levels):
+    res = (pyr[0]-np.amin(pyr[0]))/(np.amax(pyr[0])-np.amin(pyr[0]))
+    N, M = pyr[0].shape
+    for i in np.arange(1, levels):
+        normalized_level = (pyr[i]-np.amin(pyr[i]))/(np.amax(pyr[i])-np.amin(pyr[i]))
+        add_level = np.pad(normalized_level, ((0, N-pyr[i].shape[0]), (0, 0)), mode='constant')
+        res = np.append(res, add_level, axis=1)
+    return res
+
+
+
+def pyramid_blending(im1, im2, mask, max_levels, filter_size_im, filter_size_mask):
+        im_blend = np.zeros(im1.shape)
+        for channel in range(3):
+            L1, filter_vec = build_laplacian_pyramid(im1[:,:,channel], max_levels, filter_size_im)
+            L2, filter_vec = build_laplacian_pyramid(im2[:,:,channel], max_levels, filter_size_im)
+            Gm, filter_vec = build_gaussian_pyramid(np.float64(mask), max_levels, filter_size_mask)
+            Lout = []
+            for i in range(len(L1)):
+                Lout.append(L1[i]*Gm[i] + L2[i]*(1-Gm[i]))
+            im_blend[:,:,channel] = laplacian_to_image(Lout, build_filter(filter_size_im), np.ones(len(Lout)).tolist())
+        return np.clip(im_blend, 0, 1)

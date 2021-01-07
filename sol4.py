@@ -350,7 +350,7 @@ class PanoramicVideoGenerator:
     Generates panorama from a set of images.
     """
 
-    def __init__(self, data_dir, file_prefix, num_images):
+    def __init__(self, data_dir, file_prefix, num_images, bonus=False):
         """
         The naming convention for a sequence of images is file_prefixN.jpg,
         where N is a running number 001, 002, 003...
@@ -402,6 +402,7 @@ class PanoramicVideoGenerator:
         self.homographies = np.stack(accumulated_homographies)
         self.frames_for_panoramas = filter_homographies_with_translation(self.homographies, minimum_right_translation=5)
         self.homographies = self.homographies[self.frames_for_panoramas]
+
 
     def generate_panoramic_images(self, number_of_panoramas):
         """
@@ -455,6 +456,86 @@ class PanoramicVideoGenerator:
                 x_end = boundaries[0] + image_strip.shape[1]
                 self.panoramas[panorama_index, y_offset:y_bottom, boundaries[0]:x_end] = image_strip
 
+        # crop out areas not recorded from enough angles
+        # assert will fail if there is overlap in field of view between the left most image and the right most image
+        crop_left = int(self.bounding_boxes[0][1, 0])
+        crop_right = int(self.bounding_boxes[-1][0, 0])
+        assert crop_left < crop_right, 'for testing your code with a few images do not crop.'
+        print(crop_left, crop_right)
+        self.panoramas = self.panoramas[:, :, crop_left:crop_right, :]
+
+
+    def generate_panoramic_images_bonus(self, number_of_panoramas):
+        """
+        combine slices from input images to panoramas.
+        :param number_of_panoramas: how many different slices to take from each input image
+        """
+        assert self.homographies is not None
+
+        # compute bounding boxes of all warped input images in the coordinate system of the middle image (as given by the homographies)
+        self.bounding_boxes = np.zeros((self.frames_for_panoramas.size, 2, 2))
+        for i in range(self.frames_for_panoramas.size):
+            self.bounding_boxes[i] = compute_bounding_box(self.homographies[i], self.w, self.h)
+
+        # change our reference coordinate system to the panoramas
+        # all panoramas share the same coordinate system
+        global_offset = np.min(self.bounding_boxes, axis=(0, 1))
+        self.bounding_boxes -= global_offset
+
+        slice_centers = np.linspace(0, self.w, number_of_panoramas + 2, endpoint=True, dtype=np.int)[1:-1]
+        warped_slice_centers = np.zeros((number_of_panoramas, self.frames_for_panoramas.size))
+        # every slice is a different panorama, it indicates the slices of the input images from which the panorama
+        # will be concatenated
+        for i in range(slice_centers.size):
+            slice_center_2d = np.array([slice_centers[i], self.h // 2])[None, :]
+            # homography warps the slice center to the coordinate system of the middle image
+            warped_centers = [apply_homography(slice_center_2d, h) for h in self.homographies]
+            # we are actually only interested in the x coordinate of each slice center in the panoramas' coordinate system
+            warped_slice_centers[i] = np.array(warped_centers)[:, :, 0].squeeze() - global_offset[0]
+
+        panorama_size = np.max(self.bounding_boxes, axis=(0, 1)).astype(np.int) + 1
+
+        # boundary between input images in the panorama
+        x_strip_boundary = ((warped_slice_centers[:, :-1] + warped_slice_centers[:, 1:]) / 2)
+        x_strip_boundary = np.hstack([np.zeros((number_of_panoramas, 1)),
+                                      x_strip_boundary,
+                                      np.ones((number_of_panoramas, 1)) * panorama_size[0]])
+        x_strip_boundary = x_strip_boundary.round().astype(np.int)
+
+        self.panoramas = np.zeros((number_of_panoramas, panorama_size[1], panorama_size[0], 3), dtype=np.float64)
+        for i, frame_index in enumerate(self.frames_for_panoramas):
+            # warp every input image once, and populate all panoramas
+            image = sol4_utils.read_image(self.files[frame_index], 2)
+            warped_image = warp_image(image, self.homographies[i])
+            x_offset, y_offset = self.bounding_boxes[i][0].astype(np.int)
+            y_bottom = y_offset + warped_image.shape[0]
+
+            for panorama_index in range(number_of_panoramas):
+                # take strip of warped image and paste to current panorama
+                boundaries = x_strip_boundary[panorama_index, i:i + 2]
+                image_strip = warped_image[:, boundaries[0] - x_offset: boundaries[1] - x_offset]
+                x_end = boundaries[0] + image_strip.shape[1]
+                if i==0:
+                    self.panoramas[panorama_index, y_offset:y_bottom, boundaries[0]:x_end] = image_strip
+                    prev_image_strip = image_strip
+                    prev_x_boundaries = [boundaries[0],x_end]
+                    prev_y_boundaries = [y_offset,y_bottom]
+                else:
+                    is_width = image_strip.shape[1]
+                    is_height = image_strip.shape[0]
+                    pis_width =prev_image_strip.shape[1]
+                    pis_height = prev_image_strip.shape[0]
+
+                    padded_image_strip = np.pad(image_strip,((int(2**(np.ceil(np.log2(is_height)))-is_height),0),(int(2**(np.ceil(np.log2(is_width+pis_width)))-is_width),0),(0,0)), mode='constant', constant_values=0)
+                    padded_prev_image_strip = np.pad(prev_image_strip,((int(2**(np.ceil(np.log2(pis_height)))-pis_height),0),(int(2**(np.ceil(np.log2(is_width+pis_width)))-is_width-pis_width),is_width),(0,0)), mode='constant', constant_values=0)
+                    mask = np.zeros(padded_image_strip.shape[0:2])
+                    mask[:,-is_width:] = 1
+                    blended_combined_image = sol4_utils.pyramid_blending(padded_image_strip,padded_prev_image_strip,mask,9,3,3)
+                    #self.panoramas[panorama_index, prev_y_boundaries[0]:prev_y_boundaries[1], prev_x_boundaries[0]:prev_x_boundaries[1]] = blended_combined_image[-pis_height:,-(is_width+pis_width):-is_width,:]
+                    self.panoramas[panorama_index, y_offset:y_bottom, boundaries[0]:x_end] = blended_combined_image[-is_height:,-is_width:]
+                    prev_image_strip = blended_combined_image[-is_height:,-is_width:]
+                    prev_x_boundaries = [boundaries[0], x_end]
+                    prev_y_boundaries = [y_offset, y_bottom]
         # crop out areas not recorded from enough angles
         # assert will fail if there is overlap in field of view between the left most image and the right most image
         crop_left = int(self.bounding_boxes[0][1, 0])
