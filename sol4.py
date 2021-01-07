@@ -218,8 +218,8 @@ def compute_bounding_box(homography, w, h):
     """
     all_corners = np.array([[0,0],[w-1,0],[0,h-1],[w-1,h-1]])
     warped_corners = apply_homography(all_corners,homography)
-    xmin,ymin = np.int32(np.floor(np.amin(warped_corners, axis=0)))
-    xmax, ymax = np.int32(np.ceil(np.amax(warped_corners, axis=0)))
+    xmin,ymin = int(np.floor(np.amin(warped_corners, axis=0)))
+    xmax, ymax = int(np.ceil(np.amax(warped_corners, axis=0)))
     return np.array([[xmin,ymin],[xmax,ymax]])
 
 def warp_channel(image, homography):
