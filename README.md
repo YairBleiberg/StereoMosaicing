@@ -6,7 +6,7 @@ https://user-images.githubusercontent.com/107566470/211909072-2c86a3f6-3e8c-4ea5
 
 A stereo mosaic is a video of panoramas, where at each frame in the video, the panorama is of a "push broom" camera with a different angle. That is, at first there will be a panorama taken by a left-facing camera, then by a center facing camera, etc.
 
-![image](https://user-images.githubusercontent.com/107566470/211910371-23fb7d11-3cdc-480c-8150-33d62511c632.png=400x200)
+![image](https://user-images.githubusercontent.com/107566470/211910371-23fb7d11-3cdc-480c-8150-33d62511c632.png =400x200)
 
 
 To simplify slightly, this is obtained by stitching together into a panorama all the leftmost strips of the series of images to obtain the "left-facing camera", all the center strips to obtain the "center-facing camera", etc.
